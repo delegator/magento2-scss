@@ -1,0 +1,22 @@
+{
+    "name": "delegator/magento2-scss",
+    "description": "Integrates Magento 2 with scssphp SCSS processor",
+    "version": "1.0.0",
+    "require": {
+        "php": "^7.0.21",
+        "leafo/scssphp": "^0.6.7",
+        "magento/framework": "*",
+        "magento/magento-composer-installer": "*"
+    },
+    "type": "magento2-module",
+    "license": [
+        "OSL-3.0",
+        "AFL-3.0"
+    ],
+    "autoload": {
+        "files": [ "registration.php" ],
+        "psr-4": {
+            "Delegator\\Scss\\": ""
+        }
+    }
+}
