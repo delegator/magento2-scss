@@ -9,7 +9,6 @@ use Leafo\ScssPhp\Compiler;
 use Leafo\ScssPhp\Formatter;
 use Psr\Log\LoggerInterface;
 use Magento\Framework\App\State;
-use Magento\Framework\Phrase;
 use Magento\Framework\View\Asset\File;
 use Magento\Framework\View\Asset\Source;
 use Magento\Framework\View\Asset\ContentProcessorInterface;
@@ -29,22 +28,22 @@ class Processor implements ContentProcessorInterface
     /**
      * @var LoggerInterface
      */
-    protected $logger;
+    public $logger;
 
     /**
      * @var Source
      */
-    protected $assetSource;
+    public $assetSource;
 
     /**
      * @var State
      */
-    protected $appState;
+    public $appState;
 
     /**
      * @var Compiler
      */
-    protected $scssCompiler;
+    public $scssCompiler;
 
     /**
      * Constructor
@@ -92,14 +91,14 @@ class Processor implements ContentProcessorInterface
             $errorMessage = PHP_EOL . self::ERROR_MESSAGE_PREFIX . PHP_EOL . $path . PHP_EOL . $e->getMessage();
             $this->logger->critical($errorMessage);
 
-            throw new ContentProcessorException(new Phrase($errorMessage));
+            throw new ContentProcessorException(__($errorMessage));
         }
     }
 
     public function setCompilerOptions(File $asset)
     {
         // Set import path
-        $importPath = dirname($asset->getSourceFile());
+        $importPath = dirname($asset->getSourceFile()); // @codingStandardsIgnoreLine
         $this->scssCompiler->setImportPaths($importPath);
 
         // Set debug / output mode

@@ -41,7 +41,7 @@ class ProcessorTest extends \PHPUnit_Framework_TestCase
         $assetSourceMock->expects(self::once())
             ->method('getContent')
             ->with($fileMock)
-            ->willReturn(file_get_contents(__DIR__ . self::TEST_FILE));
+            ->willReturn(file_get_contents(__DIR__ . self::TEST_FILE)); // @codingStandardsIgnoreLine
 
         $processor = new Processor($assetSourceMock, $loggerMock);
 
