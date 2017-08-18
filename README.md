@@ -1,5 +1,7 @@
 # delegator/magento2-scss
 
+[![Build Status](https://travis-ci.org/delegator/magento2-scss.svg?branch=master)](https://travis-ci.org/delegator/magento2-scss)
+
 This Magento 2 module allows the use of SCSS for your CSS preprocessor, instead
 of Magento's default choice of LESS. It uses the [scssphp][scssphp] compiler to
 compile your SCSS.
