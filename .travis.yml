@@ -1,0 +1,13 @@
+sudo: false
+language: php
+php:
+  - '7.0'
+env:
+  - COMPOSER_NO_INTERACTION=1
+install:
+  - composer install
+  - composer run setup-phpcs
+script:
+  - composer run lint
+notifications:
+  email: false

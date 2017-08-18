@@ -1,20 +1,33 @@
 {
     "name": "delegator/magento2-scss",
     "description": "Integrates Magento 2 with the scssphp SCSS processor",
-    "require": {
-        "php": "^7.0.6",
-        "leafo/scssphp": "^0.6.7",
-        "magento/framework": "^100.0"
-    },
     "type": "magento2-module",
     "license": [
         "OSL-3.0",
         "AFL-3.0"
     ],
+    "repositories": [
+        {
+            "type": "composer",
+            "url": "https://repo.magento.com/"
+        }
+    ],
+    "require": {
+        "php": "^7.0.6",
+        "leafo/scssphp": "^0.6.7",
+        "magento/framework": "^100.0"
+    },
+    "require-dev": {
+        "magento/marketplace-eqp": "^1.0.5"
+    },
     "autoload": {
         "files": [ "registration.php" ],
         "psr-4": {
             "Delegator\\Scss\\": ""
         }
+    },
+    "scripts": {
+        "lint": "phpcs",
+        "setup-phpcs": "phpcs --config-set installed_paths ../../magento/marketplace-eqp"
     }
 }
