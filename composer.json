@@ -15,7 +15,7 @@
     "require": {
         "php": "^7.0.6",
         "leafo/scssphp": "^0.6.7",
-        "magento/framework": "^100.0"
+        "magento/framework": "^101.0.0"
     },
     "require-dev": {
         "magento/marketplace-eqp": "^1.0.5"
