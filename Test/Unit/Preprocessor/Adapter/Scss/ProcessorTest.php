@@ -75,7 +75,7 @@ EOT;
      */
     public function testProcessContentException()
     {
-        $fileMock = $this->getFileMock();
+        $fileMock = $this->getFileMockWithPath();
         $assetSourceMock = $this->getSourceMock();
         $loggerMock = $this->getLoggerMock();
         $stateMock = $this->getStateMock();
@@ -108,7 +108,7 @@ EOT;
      */
     public function testEmptyFile()
     {
-        $fileMock = $this->getFileMock();
+        $fileMock = $this->getFileMockWithPath();
         $assetSourceMock = $this->getSourceMock();
         $loggerMock = $this->getLoggerMock();
         $stateMock = $this->getStateMock();
@@ -130,6 +130,7 @@ EOT;
      */
     public function testProductionModeCompilerOptions()
     {
+        $fileMock = $this->getFileMock();
         $assetSourceMock = $this->getSourceMock();
         $loggerMock = $this->getLoggerMock();
         $stateMock = $this->getStateMock();
@@ -148,14 +149,21 @@ EOT;
             ->with(Processor::LINE_NUMBERS_OFF);
 
         $processor = new Processor($assetSourceMock, $loggerMock, $stateMock, $compilerMock);
-
-        self::assertNotNull($processor);
+        $processor->setCompilerOptions($fileMock);
     }
 
     /**
      * @return File|\PHPUnit_Framework_MockObject_MockObject
      */
     private function getFileMock()
+    {
+        return $this->createMock(File::class);
+    }
+
+    /**
+     * @return File|\PHPUnit_Framework_MockObject_MockObject
+     */
+    private function getFileMockWithPath()
     {
         $fileMock = $this->createMock(File::class);
 
