@@ -54,7 +54,9 @@ class ProcessorTest extends TestCase
         $content = $processor->processContent($fileMock);
 
         $search = [' ', "\t", "\n", "\r", "\0", "\x0B"];
-        $expectedContent = '/*line12*/h1{color:#009a82;margin:0;padding:0;}/*line18*/#container{width:460px;margin:0pxauto;}';
+        $expectedContent = <<<'EOT'
+/*line12*/h1{color:#009a82;margin:0;padding:0;}/*line18*/#container{width:460px;margin:0pxauto;}
+EOT;
 
         self::assertEquals($expectedContent, str_replace($search, '', $content));
     }

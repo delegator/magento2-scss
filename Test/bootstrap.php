@@ -1,5 +1,7 @@
 <?php
 
+// @codingStandardsIgnoreFile
+
 use Magento\Framework\Phrase;
 
 function __()
