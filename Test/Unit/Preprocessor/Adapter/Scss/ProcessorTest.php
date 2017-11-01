@@ -5,8 +5,11 @@
  */
 namespace Delegator\Scss\Test\Unit\Preprocessor\Adapter\Scss;
 
+use Leafo\ScssPhp\Compiler;
+use Magento\Framework\View\Asset\ContentProcessorException;
+use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
-use Magento\Framework\Phrase;
+use Magento\Framework\App\State;
 use Magento\Framework\View\Asset\File;
 use Magento\Framework\View\Asset\Source;
 use Delegator\Scss\Preprocessor\Adapter\Scss\Processor;
@@ -16,7 +19,7 @@ use Delegator\Scss\Preprocessor\Adapter\Scss\Processor;
  *
  * @see \Delegator\Scss\Preprocessor\Adapter\Scss\Processor
  */
-class ProcessorTest extends \PHPUnit_Framework_TestCase
+class ProcessorTest extends TestCase
 {
     const TEST_FILE = '/_files/test.scss';
 
@@ -32,23 +35,26 @@ class ProcessorTest extends \PHPUnit_Framework_TestCase
     public function testProcessContent()
     {
         $fileMock = $this->getFileMock();
-        $loggerMock = $this->getLoggerMock();
-        $assetSourceMock = $this->getSourceMock();
 
-        $loggerMock->expects(self::never())
-            ->method('critical');
+        $assetSourceMock = $this->getSourceMock();
+        $loggerMock = $this->getLoggerMock();
+        $stateMock = $this->getStateMock();
+        $compiler = $this->getCompiler();
 
         $assetSourceMock->expects(self::once())
             ->method('getContent')
             ->with($fileMock)
             ->willReturn(file_get_contents(__DIR__ . self::TEST_FILE)); // @codingStandardsIgnoreLine
 
-        $processor = new Processor($assetSourceMock, $loggerMock);
+        $loggerMock->expects(self::never())
+            ->method('critical');
+
+        $processor = new Processor($assetSourceMock, $loggerMock, $stateMock, $compiler);
 
         $content = $processor->processContent($fileMock);
 
         $search = [' ', "\t", "\n", "\r", "\0", "\x0B"];
-        $expectedContent = 'h1{color:#009a82;margin:0;padding:0;}#container{width:460px;margin:0pxauto;}';
+        $expectedContent = '/*line12*/h1{color:#009a82;margin:0;padding:0;}/*line18*/#container{width:460px;margin:0pxauto;}';
 
         self::assertEquals($expectedContent, str_replace($search, '', $content));
     }
@@ -59,25 +65,29 @@ class ProcessorTest extends \PHPUnit_Framework_TestCase
     public function testProcessContentException()
     {
         $fileMock = $this->getFileMock();
-        $loggerMock = $this->getLoggerMock();
         $assetSourceMock = $this->getSourceMock();
+        $loggerMock = $this->getLoggerMock();
+        $stateMock = $this->getStateMock();
+        $compiler = $this->getCompiler();
 
         $message = PHP_EOL
             . Processor::ERROR_MESSAGE_PREFIX . PHP_EOL
             . self::TEST_PATH . PHP_EOL
             . self::TEST_EXCEPTION_MESSAGES;
 
-        $loggerMock->expects(self::once())
-            ->method('critical')
-            ->with($message);
-
         $assetSourceMock->expects(self::once())
             ->method('getContent')
             ->with($fileMock)
             ->willThrowException(new \Exception(self::TEST_EXCEPTION_MESSAGES));
 
-        $processor = new Processor($assetSourceMock, $loggerMock);
+        $loggerMock->expects(self::once())
+            ->method('critical')
+            ->with($message);
 
+        $this->expectException(ContentProcessorException::class);
+
+        // Run compiler with file that blows up
+        $processor = new Processor($assetSourceMock, $loggerMock, $stateMock, $compiler);
         $content = $processor->processContent($fileMock);
 
         self::assertEquals($message, $content);
@@ -120,5 +130,23 @@ class ProcessorTest extends \PHPUnit_Framework_TestCase
             ->willReturn(self::TEST_PATH);
 
         return $fileMock;
+    }
+
+    /**
+     * @return State|\PHPUnit_Framework_MockObject_MockObject
+     */
+    private function getStateMock()
+    {
+        $stateMock = $this->createMock(State::class);
+        return $stateMock;
+    }
+
+    /**
+     * @return Compiler|\PHPUnit_Framework_MockObject_MockObject
+     */
+    private function getCompiler()
+    {
+        $compiler = new Compiler();
+        return $compiler;
     }
 }
