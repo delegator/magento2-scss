@@ -5,8 +5,11 @@
  */
 namespace Delegator\Scss\Test\Unit\Preprocessor\Adapter\Scss;
 
+use Leafo\ScssPhp\Compiler;
+use Magento\Framework\View\Asset\ContentProcessorException;
+use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
-use Magento\Framework\Phrase;
+use Magento\Framework\App\State;
 use Magento\Framework\View\Asset\File;
 use Magento\Framework\View\Asset\Source;
 use Delegator\Scss\Preprocessor\Adapter\Scss\Processor;
@@ -16,7 +19,7 @@ use Delegator\Scss\Preprocessor\Adapter\Scss\Processor;
  *
  * @see \Delegator\Scss\Preprocessor\Adapter\Scss\Processor
  */
-class ProcessorTest extends \PHPUnit_Framework_TestCase
+class ProcessorTest extends TestCase
 {
     const TEST_FILE = '/_files/test.scss';
 
@@ -26,84 +29,137 @@ class ProcessorTest extends \PHPUnit_Framework_TestCase
 
     const TEST_EXCEPTION_MESSAGES = 'Test exception messages';
 
+    private $compiler;
+
     /**
-     * Run test for processContent method
+     * Setup before each test
+     */
+    public function setUp()
+    {
+        $this->compiler = new Compiler();
+    }
+
+    /**
+     * SCSS should be processed successfully under normal conditions
      */
     public function testProcessContent()
     {
         $fileMock = $this->getFileMock();
-        $loggerMock = $this->getLoggerMock();
-        $assetSourceMock = $this->getSourceMock();
 
-        $loggerMock->expects(self::never())
-            ->method('critical');
+        $assetSourceMock = $this->getSourceMock();
+        $loggerMock = $this->getLoggerMock();
+        $stateMock = $this->getStateMock();
 
         $assetSourceMock->expects(self::once())
             ->method('getContent')
             ->with($fileMock)
             ->willReturn(file_get_contents(__DIR__ . self::TEST_FILE)); // @codingStandardsIgnoreLine
 
-        $processor = new Processor($assetSourceMock, $loggerMock);
+        $loggerMock->expects(self::never())
+            ->method('critical');
+
+        $processor = new Processor($assetSourceMock, $loggerMock, $stateMock, $this->compiler);
 
         $content = $processor->processContent($fileMock);
 
-        $search = [' ', "\t", "\n", "\r", "\0", "\x0B"];
-        $expectedContent = 'h1{color:#009a82;margin:0;padding:0;}#container{width:460px;margin:0pxauto;}';
+        $expectedContent = <<<'EOT'
+/* line 12 */
+h1 {
+  color: #009a82;
+  margin: 0;
+  padding: 0;
+}
+/* line 18 */
+#container {
+  width: 460px;
+  margin: 0px auto;
+}
 
-        self::assertEquals($expectedContent, str_replace($search, '', $content));
+EOT;
+
+        self::assertEquals($expectedContent, $content);
     }
 
     /**
-     * Run test for processContent method (Exception)
+     * When a file is bad, the preprocessor should throw a ContentProcessorException
      */
     public function testProcessContentException()
     {
-        $fileMock = $this->getFileMock();
-        $loggerMock = $this->getLoggerMock();
+        $fileMock = $this->getFileMockWithPath();
         $assetSourceMock = $this->getSourceMock();
+        $loggerMock = $this->getLoggerMock();
+        $stateMock = $this->getStateMock();
 
         $message = PHP_EOL
             . Processor::ERROR_MESSAGE_PREFIX . PHP_EOL
             . self::TEST_PATH . PHP_EOL
             . self::TEST_EXCEPTION_MESSAGES;
 
-        $loggerMock->expects(self::once())
-            ->method('critical')
-            ->with($message);
-
         $assetSourceMock->expects(self::once())
             ->method('getContent')
             ->with($fileMock)
             ->willThrowException(new \Exception(self::TEST_EXCEPTION_MESSAGES));
 
-        $processor = new Processor($assetSourceMock, $loggerMock);
+        $loggerMock->expects(self::once())
+            ->method('critical')
+            ->with($message);
 
+        $this->expectException(ContentProcessorException::class);
+
+        // Run compiler with file that blows up
+        $processor = new Processor($assetSourceMock, $loggerMock, $stateMock, $this->compiler);
         $content = $processor->processContent($fileMock);
 
         self::assertEquals($message, $content);
     }
 
     /**
-     * @return LoggerInterface|\PHPUnit_Framework_MockObject_MockObject
+     * When a file is empty, the preprocessor should return an empty string
      */
-    private function getLoggerMock()
+    public function testEmptyFile()
     {
-        $loggerMock = $this->getMockBuilder(LoggerInterface::class)
-            ->getMockForAbstractClass();
+        $fileMock = $this->getFileMockWithPath();
+        $assetSourceMock = $this->getSourceMock();
+        $loggerMock = $this->getLoggerMock();
+        $stateMock = $this->getStateMock();
 
-        return $loggerMock;
+        $assetSourceMock->expects(self::once())
+            ->method('getContent')
+            ->with($fileMock)
+            ->willReturn('');
+
+        // Run compiler with empty file
+        $processor = new Processor($assetSourceMock, $loggerMock, $stateMock, $this->compiler);
+        $content = $processor->processContent($fileMock);
+
+        self::assertEquals('', $content);
     }
 
     /**
-     * @return Source|\PHPUnit_Framework_MockObject_MockObject
+     * When the application is in production mode, the preprocessor should set the relevant options on the SCSS compiler
      */
-    private function getSourceMock()
+    public function testProductionModeCompilerOptions()
     {
-        $assetSourceMock = $this->getMockBuilder(Source::class)
-            ->disableOriginalConstructor()
-            ->getMock();
+        $fileMock = $this->getFileMock();
+        $assetSourceMock = $this->getSourceMock();
+        $loggerMock = $this->getLoggerMock();
+        $stateMock = $this->getStateMock();
+        $compilerMock = $this->getCompilerMock();
 
-        return $assetSourceMock;
+        $stateMock->expects(self::once())
+            ->method('getMode')
+            ->willReturn(State::MODE_PRODUCTION);
+
+        $compilerMock->expects(self::once())
+            ->method('setFormatter')
+            ->with(Processor::FORMATTER_CRUNCHED);
+
+        $compilerMock->expects(self::once())
+            ->method('setLineNumberStyle')
+            ->with(Processor::LINE_NUMBERS_OFF);
+
+        $processor = new Processor($assetSourceMock, $loggerMock, $stateMock, $compilerMock);
+        $processor->setCompilerOptions($fileMock);
     }
 
     /**
@@ -111,14 +167,52 @@ class ProcessorTest extends \PHPUnit_Framework_TestCase
      */
     private function getFileMock()
     {
-        $fileMock = $this->getMockBuilder(File::class)
-            ->disableOriginalConstructor()
-            ->getMock();
+        return $this->createMock(File::class);
+    }
+
+    /**
+     * @return File|\PHPUnit_Framework_MockObject_MockObject
+     */
+    private function getFileMockWithPath()
+    {
+        $fileMock = $this->createMock(File::class);
 
         $fileMock->expects(self::once())
             ->method('getPath')
             ->willReturn(self::TEST_PATH);
 
         return $fileMock;
+    }
+
+    /**
+     * @return Source|\PHPUnit_Framework_MockObject_MockObject
+     */
+    private function getSourceMock()
+    {
+        return $this->createMock(Source::class);
+    }
+
+    /**
+     * @return LoggerInterface|\PHPUnit_Framework_MockObject_MockObject
+     */
+    private function getLoggerMock()
+    {
+        return $this->createMock(LoggerInterface::class);
+    }
+
+    /**
+     * @return State|\PHPUnit_Framework_MockObject_MockObject
+     */
+    private function getStateMock()
+    {
+        return $this->createMock(State::class);
+    }
+
+    /**
+     * @return Compiler|\PHPUnit_Framework_MockObject_MockObject
+     */
+    private function getCompilerMock()
+    {
+        return $this->createMock(Compiler::class);
     }
 }
