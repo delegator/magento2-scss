@@ -3,8 +3,16 @@
          xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/6.3/phpunit.xsd"
          bootstrap="Test/bootstrap.php"
          colors="true"
-        >
+>
     <testsuite name="unit">
         <directory suffix="Test.php">Test</directory>
     </testsuite>
+    <filter>
+        <whitelist processUncoveredFilesFromWhitelist="true">
+            <directory suffix=".php">Preprocessor</directory>
+        </whitelist>
+    </filter>
+    <logging>
+        <log type="coverage-html" target="./report"/>
+    </logging>
 </phpunit>

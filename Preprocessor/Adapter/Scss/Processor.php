@@ -50,6 +50,8 @@ class Processor implements ContentProcessorInterface
      *
      * @param Source $assetSource
      * @param LoggerInterface $logger
+     * @param State $appState
+     * @param Compiler $scssCompiler
      */
     public function __construct(
         Source $assetSource,
@@ -67,6 +69,7 @@ class Processor implements ContentProcessorInterface
      * Process file content
      *
      * @param File $asset
+     * @throws ContentProcessorException
      * @return string
      */
     public function processContent(File $asset)
